@@ -34,7 +34,6 @@ const registerUser = asyncHandler( async(req, res) => {
     // validate then
     // create the new user
     // put the token in the emailVerificationToken and also the expiry
-    // 
     // save the user in the database
     // send email to the user
 
@@ -80,3 +79,43 @@ const registerUser = asyncHandler( async(req, res) => {
         )
 
 })  
+
+const loginUser = asyncHandler( async(req, res) => {
+    const {email, username, password} = req.body
+
+    const user = await User.findOne({
+        $or: [{username}, {email}]
+    });
+
+    if(!user){
+        throw new ApiError(400, "user not found")
+    }
+
+    const isPasswordCorrect = await user.isPasswordCorrect(password)
+    if(!isPasswordCorrect){
+        throw new ApiError(401, "Invalid user credential")
+    }
+
+    const {refreshToken, accessToken} = await generateAccessAndRefreshToken(user._id)
+
+    const loggedInUser = await User.findById(user._id).select(
+        "-password -refreshToken -emailVerificationToken -emailVerificationExpiry"
+    )
+
+    const option = {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production"
+    }
+
+    return res
+        .status(200)
+        .cookie("accessToken", accessToken, option)
+        .cookie("refreshToken", refreshToken, option)
+        .json(
+            new ApiRsponse(
+                200,
+                loggedInUser,
+                "user logged in successfully"
+            )
+        )
+})
