@@ -2,6 +2,7 @@ import mongoose, {Schema} from "mongoose";
 import {AvailableUserRole, UserRoleEnum} from "../utils/constant.js"
 import bcrypt from "bcryptjs"
 import jwt from "jsonwebtoken"
+import crypto from "crypto"
 
 const userSchema = new Schema({
     avatar: {
@@ -61,9 +62,9 @@ const userSchema = new Schema({
 })
 
 userSchema.pre("save", async function (next){
-    if(!this.isModified("password")) return next()
+    if(!this.isModified("password")) return 
     this.password = await bcrypt.hash(this.password, 10)
-    next()
+    next
 })
 
 userSchema.methods.isPasswordCorrect = async function (password) {
@@ -71,7 +72,7 @@ userSchema.methods.isPasswordCorrect = async function (password) {
 }
 
 userSchema.methods.generateRandomToken = function(){
-    const unHashedToken = crypto.randomBytes(32).toString("hex")
+    const unHashedToken = crypto.randomBytes(20).toString("hex")
     const hashedToken = crypto.createHash("sha256").update(unHashedToken).digest("hex");
     const tokenExpiry = Date.now() + 20 * 1000 * 1000;
 
@@ -83,9 +84,9 @@ userSchema.methods.generateRefreshToken = function(){
     {
         _id: this._id
     },
-        process.env.Refresh_Token_Secret,
+        process.env.REFRESH_TOKEN_SECRET,
     {
-        expiresIn: process.env.Refresh_Token_Expiry
+        expiresIn: process.env.REFRESH_TOKEN_EXPIRY
     }
     )
 
@@ -96,11 +97,11 @@ userSchema.methods.generateAccessToken = function (){
         {
             _id: this._id
         },
-        process.env.Access_Token_Secret,
+        process.env.ACCESS_TOKEN_SECRET,
         {
-            expiresIn: process.env.Access_Token_Expiry
+            expiresIn: process.env.ACCESS_TOKEN_EXPIRY
         }
     )
 }
 
-const User = mongoose.model("User", userSchema);
+export const User = mongoose.model("User", userSchema);

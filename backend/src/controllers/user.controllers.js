@@ -1,7 +1,6 @@
 import {asyncHandler} from "../utils/asyncHandler.js"
 import { ApiRsponse } from "../utils/apiResponse.js"
 import { ApiError } from "../utils/apiError.js"
-import bcrypt from "bcryptjs"
 import { User } from "../models/user.models.js"
 import {UserRoleEnum} from "../utils/constant.js"
 
@@ -13,8 +12,8 @@ const generateAccessAndRefreshToken = async function(userId){
             throw new ApiError(404, "user not found")
         }
 
-        const refreshToken = user.generateAccessToken()
-        const accessToken = user.generateRefreshToken()
+        const refreshToken = user.generateRefreshToken()
+        const accessToken = user.generateAccessToken()
 
         user.refreshToken = refreshToken
         user.save({ validateBeforeSave: false})
@@ -47,7 +46,7 @@ const registerUser = asyncHandler( async(req, res) => {
         throw new ApiError(400, "user already exist with this email or username")
     }
 
-    const createUser = await User.create({
+    const user = await User.create({
         username,
         email,
         password,
@@ -64,8 +63,8 @@ const registerUser = asyncHandler( async(req, res) => {
 
     // here is the email sender code
 
-    const user = await User.findById(createUser?._id).select(
-        "-passwrod -emailVerificationToken -refreshToken -emailVerificationExpiry"
+    const createdUser = await User.findById(user?._id).select(
+        "-password -emailVerificationToken -refreshToken -emailVerificationExpiry"
     )
 
     return res
@@ -73,7 +72,7 @@ const registerUser = asyncHandler( async(req, res) => {
         .json(
             new ApiRsponse(
                 201,
-                {user},
+                {createdUser},
                 "user register successfully"
             )
         )
@@ -104,7 +103,7 @@ const loginUser = asyncHandler( async(req, res) => {
 
     const option = {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production"
+        secure: true
     }
 
     return res
@@ -119,3 +118,53 @@ const loginUser = asyncHandler( async(req, res) => {
             )
         )
 })
+
+const logOutUser = asyncHandler( async(req, res) => {
+    await User.findByIdAndUpdate(
+        req.user._id, 
+        {
+            $set: {
+                refreshToken: ""
+            }
+        },
+        {
+            new: true
+        }
+    );
+
+    const options = {
+        httpOnly: true,
+        secure: true
+    }
+
+    return res
+        .status(204)
+        .clearCookie("accessToken", options)
+        .clearCookie("refreshToken", options)
+        .json(
+            new ApiRsponse(
+                204,
+                {},
+                "user logout successfully"
+            )
+        )
+})
+
+const getMe = asyncHandler( async(req, res) => {
+    return res
+    .status(200)
+    .json(
+        new ApiRsponse(
+            200,
+            req.user,
+            "Current user fetched successfully"
+        )
+    )
+})
+
+export {
+    registerUser,
+    loginUser,
+    logOutUser,
+    getMe
+}
