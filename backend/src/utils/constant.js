@@ -4,3 +4,20 @@ export const UserRoleEnum = {
 }
 
 export const AvailableUserRole = Object.values(UserRoleEnum)
+
+export const difficultyLevel = {
+    EASY: "easy",
+    MEDIUM: "medium",
+    HARD: "hard"
+}
+
+export const AvailableDifficultylevel = Object.values(difficultyLevel);
+
+export const codeLanguage = {
+    JAVASCRIPT: "javascript",
+    JAVA: "java",
+    PYTHON: "python",
+    CPP: "cpp"
+}
+
+export const AvailableCodeLanguage = Object.values(codeLanguage)
